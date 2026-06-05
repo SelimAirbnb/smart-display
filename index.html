@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Airbnb Smart Display</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+
+body {
+  
+  margin:0;
+  font-family: Arial;
+  color:white;
+  overflow:hidden;
+
+  background: linear-gradient(270deg, 
+    #0f2027, 
+    #203a43, 
+    #4e54c8, 
+    #8f94fb);
+    
+  background-size: 600% 600%;
+  animation: gradientMove 10s ease infinite;
+  
+    transition: background 2s ease;
+
+}
+
+/* GRADIENT ANIMASYON */
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* SAAT */
+#clock {
+  position:fixed;
+  top:30px;
+  right:50px;
+  font-size:45px;
+  font-weight:bold;
+  color:#00ffcc;
+  text-shadow: 0 0 10px #00ffcc;
+}
+
+/* LAYOUT */
+.main {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  height:100vh;
+  padding:80px;
+}
+
+/* SOL */
+.left {
+  max-width:60%;
+}
+
+h1 {
+  font-size:90px;
+  margin:0;
+  animation: fadeUp 1.5s ease;
+}
+
+@keyframes fadeUp {
+  from {opacity:0; transform:translateY(40px);}
+  to {opacity:1;}
+}
+
+#weather {
+  font-size:35px;
+  margin-top:20px;
+}
+
+/* SAĞ */
+.right {
+  text-align:center;
+}
+
+/* CARD */
+.card {
+  background: rgba(255,255,255,0.08);
+  padding:30px;
+  border-radius:20px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.4),
+    0 0 20px rgba(255,255,255,0.1);
+}
+
+/* 🌤️ DURUMA GÖRE BACKGROUND CLASSLAR */
+
+body.sunny {
+  background: linear-gradient(270deg, #f8b500, #fceabb);
+  background-size: 600% 600%;
+  animation: gradientMove 8s ease infinite;
+}
+
+body.cloudy {
+  background: linear-gradient(270deg, #bdc3c7, #2c3e50);
+  background-size: 600% 600%;
+  animation: gradientMove 8s ease infinite;
+}
+
+body.rainy {
+  background: linear-gradient(270deg, #4e54c8, #8f94fb);
+  background-size: 600% 600%;
+  animation: gradientMove 8s ease infinite;
+}
+
+body.snowy {
+  background: linear-gradient(270deg, #e6dada, #274046);
+  background-size: 600% 600%;
+  animation: gradientMove 8s ease infinite;
+}
+
+body.night {
+  background: linear-gradient(270deg, #141e30, #243b55);
+  background-size: 600% 600%;
+  animation: gradientMove 15s ease infinite;
+}
+/* RAIN LAYER */
+#rain {
+  position:fixed;
+  width:100%;
+  height:100%;
+  top:0;
+  left:0;
+  pointer-events:none;
+  z-index:0;
+}
+
+.drop {
+  position:absolute;
+  bottom:100%;
+  width:2px;
+  height:20px;
+  background:rgba(255,255,255,0.4);
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(110vh);
+  }
+}
+
+.snowflake {
+  position:absolute;
+  top:-10px;
+  color:white;
+  font-size:10px;
+  animation: snowFall linear infinite;
+}
+
+@keyframes snowFall {
+  to {
+    transform: translateY(110vh);
+  }
+}
+
+.sun-glow {
+  position:fixed;
+  width:500px;
+  height:500px;
+  background: radial-gradient(circle, rgba(255,200,0,0.5), transparent 70%);
+  top:-100px;
+  left:-100px;
+  pointer-events:none;
+}
+#stars {
+  position:fixed;
+  width:100%;
+  height:100%;
+  top:0;
+  left:0;
+  pointer-events:none;
+  z-index:0;
+}
+
+.star {
+  position:absolute;
+  width:2px;
+  height:2px;
+  background:white;
+  border-radius:50%;
+  opacity:0.8;
+  animation: twinkle 2s infinite alternate;
+}
+
+@keyframes twinkle {
+  from {opacity:0.2;}
+  to {opacity:1;}
+}
+/* ⭐ LAYER FIX (en alta ekle) */
+#rain { z-index:1; }
+#stars { z-index:1; }
+.sun-glow { z-index:2; }
+.main { z-index:3; position:relative; }
+#clock { z-index:4; }
+
+/* 💣 CLOCK BOX (GLASS STYLE) */
+
+#clockBox {
+  position:fixed;
+  top:30px;
+  right:50px;
+  padding:15px 25px;
+  border-radius:15px;
+
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(15px);
+
+  box-shadow: 0 0 25px rgba(0,255,200,0.2);
+}
+
+/* SAAT */
+.time {
+  font-size:48px;
+  font-weight:bold;
+  color: #ffffff;
+
+  text-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+/* TARİH */
+.date {
+ font-size:15px;
+  color: rgba(255,255,255,0.6);
+
+  margin-top:5px;
+
+  text-shadow: none; /* 💣 BU ÖNEMLİ */
+
+}
+
+#weather {
+  transition: opacity 0.8s ease;
+}
+
+h1 {
+  text-shadow: 0 0 20px rgba(255,255,255,0.15);
+}
+.card {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+
+#clockBox {
+  transition: all 0.5s ease;
+}
+
+
+
+
+</style>
+</head>
+
+<body>
+<div id="rain"></div>
+<div id="sun"></div>
+
+<div id="clockBox">
+  <div id="clock"></div>
+</div>
+
+<div id="stars"></div>
+
+<div class="main">
+  <div class="left">
+    <h1 id="guest">Loading...</h1>
+    <div id="weather"></div>
+  </div>
+
+  <div class="right">
+    <div class="card">
+      <div style="margin-bottom:10px;">📶 WiFi</div>
+      <img id="qr" width="180">
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ✅ FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyBz_Z5jDY78SmlcRzc93IuKpD8rP8Izmc4",
+  authDomain: "selim-c52a8.firebaseapp.com",
+  databaseURL: "https://selim-c52a8-default-rtdb.firebaseio.com",
+  projectId: "selim-c52a8"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ✅ SAAT
+
+
+setInterval(()=>{
+  let now = new Date();
+
+  let time = now.toLocaleTimeString("de-DE", {
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+
+  let date = now.toLocaleDateString("de-DE", {
+    weekday:"long",
+    day:"numeric",
+    month:"long"
+  });
+
+  document.getElementById("clock").innerHTML =
+    `<div class="time">${time}</div>
+     <div class="date">${date}</div>`;
+},1000);
+
+
+// ✅ FIREBASE
+db.ref("/").on("value", snap => {
+
+  let d = snap.val();
+  if(!d) return;
+
+  document.getElementById("guest").innerText =
+    "Welcome " + d.guestName + " 👋";
+
+  makeQR(d.wifiName, d.wifiPass);
+
+  getWeather(d.city);
+});
+
+// ✅ QR
+function makeQR(name, pass){
+  let data = `WIFI:S:${name};T:WPA;P:${pass};;`;
+
+  document.getElementById("qr").src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" +
+    encodeURIComponent(data);
+}
+
+// ✅ WEATHER
+
+function getWeather(city){
+  fetch("https://wttr.in/" + city + "?format=j1")
+    .then(r => r.json())
+    .then(data => {
+
+      let temp = data.current_condition[0].temp_C;
+      let desc = data.current_condition[0].weatherDesc[0].value.toLowerCase();
+
+      let icon = "🌤️";
+
+      if(desc.includes("sun")) icon="☀️";
+      else if(desc.includes("cloud")) icon="☁️";
+      else if(desc.includes("rain")) icon="🌧️";
+      else if(desc.includes("snow")) icon="❄️";
+
+      let weatherEl = document.getElementById("weather");
+
+      weatherEl.style.opacity = 0;
+
+      setTimeout(()=>{
+        weatherEl.innerText =
+          icon + " " + temp + "°C • " + desc;
+
+        weatherEl.style.opacity = 1;
+      }, 200);
+
+      let hour = new Date().getHours();
+      setBackground(desc, hour);
+    });
+}
+
+
+// ✅ BACKGROUND ENGINE (important!)
+
+function makeRain(){
+  const rain = document.getElementById("rain");
+  rain.innerHTML = "";
+
+  for(let i=0; i<120; i++){
+    let drop = document.createElement("div");
+    drop.classList.add("drop");
+
+    drop.style.left = Math.random() * 100 + "%";
+    drop.style.animationDuration = (0.5 + Math.random()) + "s";
+    drop.style.opacity = Math.random();
+
+    rain.appendChild(drop);
+  }
+}
+
+function setBackground(desc, hour){
+
+  let isNight = (hour >= 20 || hour <= 6);
+
+  document.body.className = "";
+  document.getElementById("rain").innerHTML = "";
+  document.getElementById("stars").innerHTML = "";
+  clearSun();
+
+  if(isNight){
+    document.body.classList.add("night");
+    makeStars(); // 🌌 YILDIZLAR
+  }
+
+  if(desc.includes("sun")){
+    document.body.classList.add("sunny");
+    if(!isNight) showSun(); // ☀️ sadece gündüz
+  }
+  else if(desc.includes("cloud")){
+    document.body.classList.add("cloudy");
+  }
+  else if(desc.includes("rain")){
+    document.body.classList.add("rainy");
+    makeRain(); // 🌧️
+  }
+  else if(desc.includes("snow")){
+    document.body.classList.add("snowy");
+    makeSnow(); // ❄️
+  }
+}
+
+function makeSnow(){
+  const rain = document.getElementById("rain");
+  rain.innerHTML = "";
+
+  for(let i=0; i<80; i++){
+    let snow = document.createElement("div");
+    snow.innerText = "❄️";
+    snow.classList.add("snowflake");
+
+    snow.style.left = Math.random() * 100 + "%";
+    snow.style.animationDuration = (3 + Math.random()*5) + "s";
+    snow.style.fontSize = (10 + Math.random()*10) + "px";
+
+    rain.appendChild(snow);
+  }
+}
+function showSun(){
+  let sun = document.getElementById("sun");
+  sun.innerHTML = '<div class="sun-glow"></div>';
+}
+
+function clearSun(){
+  document.getElementById("sun").innerHTML = "";
+}
+function makeStars(){
+  const stars = document.getElementById("stars");
+  stars.innerHTML = "";
+
+  for(let i=0; i<120; i++){
+    let star = document.createElement("div");
+    star.classList.add("star");
+
+    star.style.left = Math.random() * 100 + "%";
+    star.style.top = Math.random() * 100 + "%";
+    star.style.animationDuration = (1 + Math.random()*2) + "s";
+
+    stars.appendChild(star);
+  }
+}
+
+
+</script>
+
+</body>
+</html>
